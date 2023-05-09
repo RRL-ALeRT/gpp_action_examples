@@ -7,23 +7,30 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(gpp_action_examples_interface REQUIRED)
 
-find_package(rosidl_default_generators REQUIRED)
+add_executable(spot_body_pose cpp/spot_body_pose.cpp)
+ament_target_dependencies(spot_body_pose rclcpp std_msgs geometry_msgs gpp_action_examples_interface)
 
-rosidl_generate_interfaces(${PROJECT_NAME}
-  "action/PlayAudio.action"
-  "action/Print.action"
-  "action/TrajectoryToFrame.action"
-  "srv/Print.srv"
+add_executable(vision_start_frame_tf2 cpp/vision_start_frame_tf2.cpp)
+ament_target_dependencies(vision_start_frame_tf2 rclcpp std_msgs geometry_msgs gpp_action_examples_interface tf2 tf2_ros)
+
+
+install(TARGETS
+  spot_body_pose
+  vision_start_frame_tf2
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 set(PYTHON_NODES
   audio_action_server.py
   print_srv_server.py
-  TrajectoryToFrameServer.py
+  gpp_trajectory.py
 )
 install(DIRECTORY python/${PROJECT_NAME}
   DESTINATION lib
@@ -31,6 +38,10 @@ install(DIRECTORY python/${PROJECT_NAME}
 foreach(PY_FILE ${PYTHON_NODES})
   execute_process(COMMAND chmod +x ${CMAKE_INSTALL_PREFIX}/lib/${PROJECT_NAME}/${PY_FILE})
 endforeach()
+
+install(DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
+)
 
 install(DIRECTORY sounds
   DESTINATION share/${PROJECT_NAME}

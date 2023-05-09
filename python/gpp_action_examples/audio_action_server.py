@@ -3,7 +3,7 @@
 import rclpy
 from rclpy.action import ActionServer
 from rclpy.node import Node
-from gpp_action_examples.action import PlayAudio
+from gpp_action_examples_interface.action import PlayAudio
 from playsound import playsound
 
 from ament_index_python.packages import get_package_share_directory

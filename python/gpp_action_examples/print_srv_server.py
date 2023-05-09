@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from gpp_action_examples.srv import Print
+from gpp_action_examples_interface.srv import Print
 
 import rclpy
 from rclpy.node import Node
