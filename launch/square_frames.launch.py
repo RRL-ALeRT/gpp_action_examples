@@ -73,5 +73,12 @@ def generate_launch_description():
     )
     tfs.append(spot_trajectory_to_frame_server)
 
+    audio_server = Node(
+        package='gpp_action_examples',
+        executable='audio_action_server.py',
+        output='screen',
+    )
+    tfs.append(audio_server)
+
     return LaunchDescription(tfs)
 
