@@ -66,6 +66,20 @@ def generate_launch_description():
     )
     tfs.append(start_frame_tf2)
 
+    start_frame_tf2 = Node(
+        package='gpp_action_examples',
+        executable='spot_body_pose',
+        output='screen',
+    )
+    tfs.append(start_frame_tf2)
+    
+    start_frame_tf2 = Node(
+        package='gpp_action_examples',
+        executable='spot_body_pose',
+        output='screen',
+    )
+    tfs.append(start_frame_tf2)
+
     spot_trajectory_to_frame_server = Node(
         package='gpp_action_examples',
         executable='gpp_trajectory.py',

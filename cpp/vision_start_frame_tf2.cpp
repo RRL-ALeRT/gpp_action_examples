@@ -22,9 +22,13 @@ public:
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
     tf_static_broadcaster_ = std::make_unique<tf2_ros::StaticTransformBroadcaster>(this);
 
+    // while (!tf2_published) {
+    //   on_timer();
+    //   rclcpp::Rate(1).sleep();
+    // }
     // Call on_timer function every second
     timer_ = this->create_wall_timer(
-      0.05s, std::bind(&FrameListener::on_timer, this));
+      0.1s, std::bind(&FrameListener::on_timer, this));
   }
 
 private:
@@ -35,23 +39,27 @@ private:
     std::string fromFrameRel = "vision";
     std::string toFrameRel = "body";
 
-    geometry_msgs::msg::TransformStamped t;
-
-    try {
-      t = tf_buffer_->lookupTransform(
-        fromFrameRel, toFrameRel,
-        tf2::TimePointZero);
-    } catch (const tf2::TransformException & ex) {
-      RCLCPP_INFO(this->get_logger(), "%s", ex.what());
-      return;
+    if (!tf2_published) {
+      try {
+        t = tf_buffer_->lookupTransform(
+          fromFrameRel, toFrameRel,
+          tf2::TimePointZero);
+      } catch (const tf2::TransformException & ex) {
+        RCLCPP_INFO(this->get_logger(), "%s", ex.what());
+        return;
+      }
     }
 
     t.header.frame_id = "vision";
     t.child_frame_id = "start_frame";
     tf_static_broadcaster_->sendTransform(t);
-    timer_->reset();
+    tf2_published = true;
+    // timer_->reset();
   }
 
+  geometry_msgs::msg::TransformStamped t;
+
+  bool tf2_published = false;
   rclcpp::TimerBase::SharedPtr timer_{nullptr};
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_{nullptr};
   std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
