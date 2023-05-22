@@ -29,6 +29,7 @@ install(TARGETS
 
 set(PYTHON_NODES
   audio_action_server.py
+  frontier_exploration_action_server.py
   print_srv_server.py
   gpp_trajectory.py
 )
