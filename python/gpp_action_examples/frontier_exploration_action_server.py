@@ -18,9 +18,12 @@ import numpy as np
 import heapq, math, random
 import scipy.interpolate as si
 
+from ompl import base as ob
+from ompl import geometric as og
+
 lookahead_distance = 0.4 # The distance to look ahead (in meters) for path planning.
 speed = 0.5 # The maximum speed of the robot (in meters per second).
-expansion_size = 6 # The factor by which obstacles are expanded during path planning.
+expansion_size = 5 # The factor by which obstacles are expanded during path planning.
 target_error = 0.4 # The acceptable error margin (in meters) for reaching the target location.
 robot_r = 0.4 # The safety distance around the robot (in meters) for local obstacle avoidance.
 
@@ -110,6 +113,73 @@ def astar(array, start, goal):
             return data
     
     return False
+
+
+def rrt_star_ompl_path_planning(map_array, start, goal):
+    # Create an OMPL state space
+    space = ob.RealVectorStateSpace(2)
+
+    # Set the bounds for the state space based on the map array
+    bounds = ob.RealVectorBounds(2)  # Assuming 2D planning
+    bounds.setLow(0, 0.0)  # Set lower bound for x-coordinate
+    bounds.setLow(1, 0.0)  # Set lower bound for y-coordinate
+    bounds.setHigh(0, len(map_array) - 1)  # Set upper bound for x-coordinate
+    bounds.setHigh(1, len(map_array[0]) - 1)  # Set upper bound for y-coordinate
+    space.setBounds(bounds)
+
+    # Create a simple setup
+    ss = og.SimpleSetup(space)
+
+    def isStateValid(state):
+        x = int(state[0])
+        y = int(state[1])
+
+        if (x >= map_array.shape[0] or y >= map_array.shape[1]):
+            return False
+
+        if map_array[x][y] == 1:
+            return False
+
+        return True
+
+    # Set the state validity checker
+    validity_checker = ob.StateValidityCheckerFn(isStateValid)
+    ss.setStateValidityChecker(validity_checker)
+
+    # Set the start and goal states
+    start_state = ob.State(space)
+    start_state[0] = start[0]
+    start_state[1] = start[1]
+
+    goal_state = ob.State(space)
+    goal_state[0] = goal[0]
+    goal_state[1] = goal[1]
+    ss.setStartAndGoalStates(start_state, goal_state)
+
+    # Create the planner
+    planner = og.RRTstar(ss.getSpaceInformation())
+
+    # Set the problem definition for the planner
+    ss.setPlanner(planner)
+
+    # Attempt to solve the problem
+    if ss.solve(1.0):
+        # Get the solution path
+        path = ss.getSolutionPath()
+
+        # Interpolate the path
+        path.interpolate()
+
+        # Extract the waypoints from the path
+        waypoints = []
+        for i in range(path.getStateCount()):
+            state = path.getState(i)
+            waypoints.append((state[0], state[1]))
+
+        return waypoints
+
+    else:
+        return None
 
 
 def bspline_planning(array, sn):
@@ -228,7 +298,7 @@ def calculate_centroid(x_coords, y_coords):
 
 
 #This function selects the one that is farther than target_error*2 from the top 5 groups and closest to the robot.
-def findClosestGroup(matrix, groups, current, resolution, originX, originY):
+def findClosestGroup(matrix, groups, current, resolution, originX, originY, planner):
     targetP = None
     distances = np.zeros(len(groups))
     paths = [None] * len(groups)
@@ -237,8 +307,14 @@ def findClosestGroup(matrix, groups, current, resolution, originX, originY):
     num_groups = len(groups)
     
     for i, (_, points) in enumerate(groups):
-        middle = (np.mean([p[0] for p in points]), np.mean([p[1] for p in points]))
-        path = astar(matrix, current, middle)
+        if planner == 'a_star':
+            middle = (np.mean([p[0] for p in points]), np.mean([p[1] for p in points]))
+            path = astar(matrix, current, middle)
+        elif planner == 'rrt_star':
+            middle = (int(np.mean([p[0] for p in points])), int(np.mean([p[1] for p in points])))
+            matrix[middle[0]][middle[1]] = 0
+            path = rrt_star_ompl_path_planning(matrix, current, middle)
+
         path = [(p[1] * resolution + originX, p[0] * resolution + originY) for p in path]
         paths[i] = path
         distances[i] = pathLength(path)
@@ -258,7 +334,12 @@ def findClosestGroup(matrix, groups, current, resolution, originX, originY):
         index = random.randint(0, num_groups - 1)
         target = groups[index][1]
         target = target[random.randint(0, len(target) - 1)]
-        path = astar(matrix, current, target)
+        if planner == 'a_star':
+            path = astar(matrix, current, target)
+        elif planner == 'rrt_star':
+            matrix[target[0]][target[1]] = 0
+            path = rrt_star_ompl_path_planning(matrix, current, target)
+
         targetP = [(p[1] * resolution + originX, p[0] * resolution + originY) for p in path]
     
     return targetP
@@ -366,6 +447,12 @@ class navigationControl(Node):
         robot_frame = goal_handle.request.robot_frame
         odom_frame = goal_handle.request.odom_frame
         forward = goal_handle.request.forward
+        planner = goal_handle.request.planner
+
+        self.planner = 'a_star'
+
+        if self.planner != planner:
+            self.planner = planner
 
         feedback_msg = Exploration.Feedback()
         feedback_msg.status = 'exploring'
@@ -498,7 +585,7 @@ class navigationControl(Node):
             path = -1
         else: #Find the closest group if there is a group
             data[data < 0] = 1 #-0.05 ones unknown location. Mark as not allowed. 0 = can go, 1 = not go.
-            path = findClosestGroup(data,groups,(row,column),resolution,originX,originY) #Find the nearest group
+            path = findClosestGroup(data,groups,(row,column),resolution,originX,originY,self.planner) #Find the nearest group
             if path != None: #Fix with BSpline if path exists
                 path = bspline_planning(path,len(path)*5)
             else:

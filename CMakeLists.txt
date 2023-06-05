@@ -20,7 +20,6 @@ ament_target_dependencies(spot_body_pose rclcpp std_msgs geometry_msgs gpp_actio
 add_executable(vision_start_frame_tf2 cpp/vision_start_frame_tf2.cpp)
 ament_target_dependencies(vision_start_frame_tf2 rclcpp std_msgs geometry_msgs gpp_action_examples_interface tf2 tf2_ros)
 
-
 install(TARGETS
   spot_body_pose
   vision_start_frame_tf2
