@@ -31,6 +31,9 @@ set(PYTHON_NODES
   frontier_exploration_action_server.py
   print_srv_server.py
   gpp_trajectory.py
+  avoid_holes_mapper.py
+  send_images.py
+  pose_saver.py
 )
 install(DIRECTORY python/${PROJECT_NAME}
   DESTINATION lib
@@ -44,6 +47,10 @@ install(DIRECTORY launch
 )
 
 install(DIRECTORY sounds
+  DESTINATION share/${PROJECT_NAME}
+)
+
+install(DIRECTORY resource
   DESTINATION share/${PROJECT_NAME}
 )
 

@@ -1,0 +1,67 @@
+action navigateToFrame(number target_frame) {
+mapping:
+	"/trajectoryToFrame" {
+		frame_id = target_frame
+	}
+}
+
+action Height(number z) {
+mapping:
+	"/body_pose_service" {
+		px = 0.0,
+		py = 0.0,
+		pz = z,
+		ox = 0.0,
+		oy = 0.0,
+		oz = 0.0,
+		ow = 1.0
+	}
+}
+
+number fluent spot_height() {initially:() = 0.0;}
+number fluent count() {initially:() = 0;}
+number fluent iter() {initially:() = 0;}
+number fluent round_counter() {initially:() = 0;}
+bool fluent start_loop() {initially:() = false;}
+
+list[number]
+list[number] fluent height_list() {
+initially:
+   () = list[number][0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+}
+
+exog_action exog_trigger(number data) {
+mapping:
+	"/spot_height" {
+		data = data
+	}
+effect:
+	if (data == 100) start_loop() = true;
+	if (data != 100) height_list()[count()] = data;
+	if (data != 100) count() = count() + 1;
+}
+
+procedure main(){
+	test(start_loop());
+	iter() = count() - 1;
+	while (iter() > 0) {
+		Height(height_list()[iter()]);
+		iter() = iter() - 1;
+		navigateToFrame(iter());
+	}
+     round_counter() = 0;
+     while (round_counter() < 4) {
+         iter() = 0;
+         while (iter() < count() - 1) {
+             iter() = iter() + 1;
+             Height(height_list()[iter()]);
+             navigateToFrame(iter());
+         }
+         while (iter() > 0) {
+             Height(height_list()[iter()]);
+             iter() = iter() - 1;
+             navigateToFrame(iter());
+         }
+         round_counter() = round_counter() + 1;
+     }
+}
