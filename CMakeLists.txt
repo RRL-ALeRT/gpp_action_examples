@@ -27,17 +27,21 @@ install(TARGETS
 )
 
 set(PYTHON_NODES
+  move_circle_as.py
+  move_circle_client.py
   audio_action_server.py
   frontier_exploration_action_server.py
   print_srv_server.py
   gpp_trajectory.py
   avoid_holes_mapper.py
-  send_images.py
   pose_saver.py
 )
-install(DIRECTORY python/${PROJECT_NAME}
-  DESTINATION lib
-)
+foreach(PY_FILE ${PYTHON_NODES})
+  install(PROGRAMS python/gpp_action_examples/${PY_FILE} DESTINATION lib/${PROJECT_NAME})
+endforeach()
+# install(DIRECTORY python/${PROJECT_NAME}
+#   DESTINATION lib
+# )
 foreach(PY_FILE ${PYTHON_NODES})
   execute_process(COMMAND chmod +x ${CMAKE_INSTALL_PREFIX}/lib/${PROJECT_NAME}/${PY_FILE})
 endforeach()
